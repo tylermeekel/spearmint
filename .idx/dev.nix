@@ -4,6 +4,7 @@
   packages = [
     pkgs.gleam
     pkgs.erlang
+    pkgs.rebar3
   ];
 
   idx = {
@@ -11,6 +12,7 @@
       "Catppuccin.catppuccin-vsc"
       "gleam.gleam"
       "tamasfe.even-better-toml"
+      "rangav.vscode-thunder-client"
     ];
   };
 }
