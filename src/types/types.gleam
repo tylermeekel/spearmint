@@ -1,4 +1,3 @@
-import gleam/dynamic.{type Dynamic}
 import gleam/json.{type Json}
 
 pub type Person {
