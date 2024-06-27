@@ -5,6 +5,7 @@
     pkgs.gleam
     pkgs.erlang
     pkgs.rebar3
+    pkgs.postgresql_16
   ];
 
   idx = {
