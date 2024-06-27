@@ -1,4 +1,9 @@
+import gleam/pgo
 import wisp.{type Request, type Response}
+
+pub type Context {
+  Context(db: pgo.Connection)
+}
 
 pub fn middleware(req: Request, next: fn(Request) -> Response) -> Response {
   let req = wisp.method_override(req)
