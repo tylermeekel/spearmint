@@ -1,5 +1,3 @@
-import gleam/json.{type Json}
-
 type Application {
   Application(id: String, name: String, owner_id: String)
 }
