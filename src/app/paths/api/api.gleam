@@ -9,11 +9,11 @@ import types/types
 import wisp.{type Request, type Response}
 
 pub fn handle_api(req: Request, context: web.Context) -> Response {
-    let assert ["api", ..rest] = wisp.path_segments(req)
-    case rest {
-      ["applications"] -> handle_applications(req, context)
-      _ -> wisp.not_found()
-    }
+  let assert ["api", ..rest] = wisp.path_segments(req)
+  case rest {
+    ["applications"] -> handle_applications(req, context)
+    _ -> wisp.not_found()
+  }
 }
 
 fn handle_applications(req: Request, context: web.Context) -> Response {
