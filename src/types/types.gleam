@@ -1,8 +1,18 @@
-type Application {
+import gleam/json
+
+pub type Application {
   Application(id: String, name: String, owner_id: String)
 }
 
-type Campaign {
+pub fn encode_application(application: Application) -> json.Json {
+  json.object([
+    #("id", json.string(application.id)),
+    #("name", json.string(application.name)),
+    #("owner_id", json.string(application.owner_id)),
+  ])
+}
+
+pub type Campaign {
   Campaign(
     id: String,
     name: String,
@@ -11,7 +21,7 @@ type Campaign {
   )
 }
 
-type CampaignOption {
+pub type CampaignOption {
   CampaignOption(
     id: String,
     name: String,
@@ -20,11 +30,11 @@ type CampaignOption {
   )
 }
 
-type User {
+pub type User {
   User(id: String, public_key: String, campaign_option_id: String)
 }
 
-type CampaignOptionStatistic {
+pub type CampaignOptionStatistic {
   CampaignOptionStatistic(
     id: String,
     name: String,
@@ -33,7 +43,7 @@ type CampaignOptionStatistic {
   )
 }
 
-type MeasuredDatapoint {
+pub type MeasuredDatapoint {
   MeasuredDatapoint(
     id: String,
     statistic_id: String,

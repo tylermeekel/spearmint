@@ -2,13 +2,10 @@ import app/router
 import app/web
 import gleam/erlang/os
 import gleam/erlang/process
+import gleam/io
 import gleam/pgo
-import gleam/result
 import mist
 import wisp
-import gleam/io
-import gleam/uri.{Uri}
-import gleam/option
 
 pub fn main() {
   wisp.configure_logger()
@@ -16,19 +13,19 @@ pub fn main() {
 
   let postgres_url = case os.get_env("POSTGRES_URL") {
     Ok(url) -> url
-    Error(_) -> panic as "POSTGRES_URL environment variable is not set."
+    Error(_) -> panic as "The POSTGRES_URL environment variable is not set."
   }
 
-  // Parse Postgres URL
-  let parsed_uri = case uri.parse(postgres_url) {
-    Ok(uri) -> uri
-    Error(_) -> panic as "Failed to parse Postgres URL."
+  let config = case pgo.url_config(postgres_url) {
+    Ok(config) -> pgo.Config(..config, pool_size: 2)
+    Error(_) ->
+      panic as "The POSTGRES_URL variable is not a valid URL, please check the format. For now, the port is also a requirement (default: 5432)."
   }
 
-  io.debug(parsed_uri)
+  io.debug(config)
 
   // Connect to database and configure context
-  let db = pgo.connect(pgo.default_config())
+  let db = pgo.connect(config)
   let context = web.Context(db)
 
   // Create handler for requests that wraps the given context.
