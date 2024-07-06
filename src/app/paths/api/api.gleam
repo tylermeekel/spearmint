@@ -12,8 +12,17 @@ pub fn handle_api(req: Request, context: web.Context) -> Response {
   let assert ["api", ..rest] = wisp.path_segments(req)
   case rest {
     ["applications"] -> handle_applications(req, context)
+    ["test"] -> handle_test(req, context)
     _ -> wisp.not_found()
   }
+}
+
+fn handle_test(req: Request, context: web.Context) -> Response {
+  use application_id <- web.authenticate(req, context.db)
+
+  io.debug(application_id)
+
+  wisp.ok()
 }
 
 fn handle_applications(req: Request, context: web.Context) -> Response {

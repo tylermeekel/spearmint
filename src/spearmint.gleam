@@ -3,7 +3,6 @@ import app/web
 import gleam/erlang/os
 import gleam/erlang/process
 import gleam/io
-import gleam/option.{None}
 import gleam/pgo
 import mist
 import wisp
@@ -27,7 +26,7 @@ pub fn main() {
 
   // Connect to database and configure context
   let db = pgo.connect(config)
-  let context = web.Context(db, None)
+  let context = web.Context(db)
 
   // Create handler for requests that wraps the given context.
   let handler = router.handle_request(_, context)
