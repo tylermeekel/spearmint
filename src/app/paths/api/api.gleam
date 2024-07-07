@@ -1,10 +1,12 @@
+import antigone
 import app/web
+import gleam/bit_array
 import gleam/dynamic
 import gleam/http.{Get, Post}
-import gleam/io
 import gleam/json
 import gleam/list
 import gleam/pgo
+import ids/uuid
 import types/types
 import wisp.{type Request, type Response}
 
@@ -12,17 +14,84 @@ pub fn handle_api(req: Request, context: web.Context) -> Response {
   let assert ["api", ..rest] = wisp.path_segments(req)
   case rest {
     ["applications"] -> handle_applications(req, context)
+    ["api_keys"] -> handle_api_keys(req, context)
     ["test"] -> handle_test(req, context)
     _ -> wisp.not_found()
   }
 }
 
 fn handle_test(req: Request, context: web.Context) -> Response {
-  use application_id <- web.authenticate(req, context.db)
-
-  io.debug(application_id)
+  use <- web.authenticate(req, context.db)
 
   wisp.ok()
+}
+
+fn handle_api_keys(req: Request, context: web.Context) -> Response {
+  case req.method {
+    Post -> post_new_api_key(req, context)
+    _ -> wisp.method_not_allowed([Post])
+  }
+}
+
+type ApplicationIdType {
+  ApplicationIdType(application_id: String)
+}
+
+// TODO: fix, this is hard to read.
+fn post_new_api_key(req: Request, context: web.Context) -> Response {
+  use json <- wisp.require_json(req)
+
+  let decoder =
+    dynamic.decode1(
+      ApplicationIdType,
+      dynamic.field("application_id", dynamic.string),
+    )
+
+  case decoder(json) {
+    Ok(ApplicationIdType(application_id)) -> {
+      let assert Ok(uuid) = uuid.generate_v4()
+      let hashed =
+        bit_array.from_string(uuid)
+        |> antigone.hash(antigone.hasher(), _)
+
+      let query =
+        "INSERT INTO api_key (key, application_id) VALUES ($1, $2) RETURNING key, application_id::text"
+
+      let dynamic_type = dynamic.tuple2(dynamic.string, dynamic.string)
+
+      case
+        pgo.execute(
+          query,
+          context.db,
+          [pgo.text(hashed), pgo.text(application_id)],
+          dynamic_type,
+        )
+      {
+        Ok(response) -> {
+          case response.rows {
+            [#(_, application_id), ..] -> {
+              let json_string =
+                json.to_string_builder(
+                  json.object([
+                    #("key", json.string(uuid)),
+                    #("application_id", json.string(application_id)),
+                  ]),
+                )
+
+              wisp.json_response(json_string, 201)
+            }
+            _ -> wisp.internal_server_error()
+          }
+        }
+        Error(_) -> {
+          wisp.internal_server_error()
+        }
+      }
+    }
+    Error(_) -> {
+      wisp.internal_server_error()
+    }
+  }
 }
 
 fn handle_applications(req: Request, context: web.Context) -> Response {
@@ -54,8 +123,7 @@ fn get_all_applications(context: web.Context) -> Response {
       |> json.to_string_builder()
       |> wisp.json_response(200)
     }
-    Error(e) -> {
-      io.debug(e)
+    Error(_) -> {
       wisp.internal_server_error()
     }
   }
@@ -95,14 +163,12 @@ fn post_new_application(req: Request, context: web.Context) -> Response {
             _ -> wisp.internal_server_error()
           }
         }
-        Error(execute_error) -> {
-          io.debug(execute_error)
+        Error(_) -> {
           wisp.internal_server_error()
         }
       }
     }
-    Error(decode_error) -> {
-      io.debug(decode_error)
+    Error(_) -> {
       wisp.bad_request()
     }
   }

@@ -1,3 +1,5 @@
+import antigone
+import gleam/bit_array
 import gleam/dynamic
 import gleam/list
 import gleam/pgo
@@ -23,44 +25,55 @@ pub fn middleware(
 pub fn authenticate(
   req: Request,
   db: pgo.Connection,
-  next: fn(String) -> Response,
+  next: fn() -> Response,
 ) -> Response {
-  case
-    wisp.get_query(req)
-    |> list.key_find(find: "api_token")
-  {
-    Ok(api_token) ->
-      case get_application_id(api_token, db) {
-        Ok(application_id) -> {
-          next(application_id)
-        }
-        Error(_) -> wisp.bad_request()
+  let queries = wisp.get_query(req)
+  let filtered_queries =
+    list.filter(queries, fn(item: #(String, String)) -> Bool {
+      case item.0 {
+        "api_token" -> True
+        "application_id" -> True
+        _ -> False
       }
-    Error(_) -> wisp.bad_request()
+    })
+
+  case filtered_queries {
+    [#("api_token", api_token), #("application_id", application_id)]
+    | [#("api_token", api_token), #("application_id", application_id)] -> {
+      case check_authenticated(api_token, application_id, db) {
+        True -> next()
+        False -> wisp.bad_request()
+      }
+    }
+    _ -> wisp.bad_request()
   }
 }
 
-fn get_application_id(
+fn check_authenticated(
   api_key: String,
+  application_id: String,
   db: pgo.Connection,
-) -> Result(String, Nil) {
+) -> Bool {
   let query =
-    "SELECT application_id::text, key::text FROM api_key WHERE key = $1"
+    "SELECT application_id::text, key FROM api_key WHERE application_id = $1"
 
   case
     pgo.execute(
       query,
       db,
-      [pgo.text(api_key)],
+      [pgo.text(application_id)],
       dynamic.tuple2(dynamic.string, dynamic.string),
     )
   {
     Ok(response) -> {
       case response.rows {
-        [#(application_id, _), ..] -> Ok(application_id)
-        _ -> Error(Nil)
+        [#(_, hashed_key), ..] -> {
+          let api_key_bitarray = bit_array.from_string(api_key)
+          antigone.verify(api_key_bitarray, hashed_key)
+        }
+        _ -> False
       }
     }
-    Error(_) -> Error(Nil)
+    Error(_) -> False
   }
 }

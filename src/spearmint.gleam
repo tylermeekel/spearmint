@@ -2,7 +2,6 @@ import app/router
 import app/web
 import gleam/erlang/os
 import gleam/erlang/process
-import gleam/io
 import gleam/pgo
 import mist
 import wisp
@@ -21,8 +20,6 @@ pub fn main() {
     Error(_) ->
       panic as "The POSTGRES_URL variable is not a valid URL, please check the format. For now, the port is also a requirement (default: 5432)."
   }
-
-  io.debug(config)
 
   // Connect to database and configure context
   let db = pgo.connect(config)
