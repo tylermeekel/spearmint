@@ -3,6 +3,7 @@ import gleam/bit_array
 import gleam/dynamic
 import gleam/list
 import gleam/pgo
+import util/responses
 import wisp.{type Request, type Response}
 
 pub type Context {
@@ -42,10 +43,11 @@ pub fn authenticate(
     | [#("api_token", api_token), #("application_id", application_id)] -> {
       case check_authenticated(api_token, application_id, db) {
         True -> next()
-        False -> wisp.bad_request()
+        False ->
+          responses.unauthorized_request("Invalid API token or application ID")
       }
     }
-    _ -> wisp.bad_request()
+    _ -> responses.unauthorized_request("Missing API token or application ID")
   }
 }
 
